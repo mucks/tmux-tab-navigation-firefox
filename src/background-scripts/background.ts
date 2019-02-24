@@ -1,41 +1,44 @@
-function focusTab(windowId: number, indexChange: number) {
-  browser.tabs.query({}).then((tabs: browser.tabs.Tab[]) => {
-    const currentWindowTabs = tabs.filter(tab => tab.windowId == windowId);
-    const activeTab = currentWindowTabs.filter(tab => tab.active)[0];
+class BackgroundService {
+  private readonly newTabUrl = 'https://www.google.com';
 
-    if (activeTab) {
-      const newTab = currentWindowTabs
-        .filter(tab => tab.index == activeTab.index + indexChange)[0];
+  listen() {
+    browser.runtime.onMessage.addListener((msg: any) => this.onMessage(msg));
+  }
 
-      if (newTab) {
-        browser.tabs.update(newTab.id, { active: true });
+  onMessage(msg: string) {
+    this.getCurrentWindowId(id => {
+      let choices: { [event: string]: { (): void } } = {
+        'previous': () => { this.focusTab(id, -1) },
+        'next': () => { this.focusTab(id, 1) },
+        'create': () => { browser.tabs.create({ url: this.newTabUrl }) }
+      };
+
+      choices[msg]();
+    })
+  }
+
+  focusTab(windowId: number, indexChange: number) {
+    browser.tabs.query({}).then((tabs: browser.tabs.Tab[]) => {
+      const currentWindowTabs = tabs.filter(tab => tab.windowId == windowId);
+      const activeTab = currentWindowTabs.filter(tab => tab.active)[0];
+
+      if (activeTab) {
+        const newTab = currentWindowTabs
+          .filter(tab => tab.index == activeTab.index + indexChange)[0];
+
+        if (newTab) {
+          browser.tabs.update(newTab.id, { active: true });
+        }
       }
-    }
-  });
+    });
+  }
+
+  getCurrentWindowId(callback: { (id: number): void }): void {
+    browser.windows.getCurrent().then((window: browser.windows.Window) => {
+      callback(window.id);
+    });
+  }
 }
 
-function getCurrentWindowId(callback: { (id: number): void }): void {
-  browser.windows.getCurrent().then((window: browser.windows.Window) => {
-    callback(window.id);
-  });
-}
-
-const newTabUrl = 'https://www.google.com';
-
-function handleTmuxEvent(request: any) {
-  getCurrentWindowId(id => {
-    switch (request) {
-      case 'next':
-        focusTab(id, 1);
-        break;
-      case 'previous':
-        focusTab(id, -1);
-        break;
-      case 'new':
-        browser.tabs.create({url: newTabUrl});
-        break;
-    }
-  });
-}
-
-browser.runtime.onMessage.addListener(handleTmuxEvent);
+const backgroundService = new BackgroundService();
+backgroundService.listen();

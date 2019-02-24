@@ -1,38 +1,28 @@
-let tmuxActive = false;
+class KeyboardEventHandler {
+  keyToEventMap: Map<string, string> = new Map(
+    [
+      ['n', 'next'],
+      ['p', 'previous'],
+      ['c', 'create'],
+      ['b', 'back']
+    ]
+  );
+  tmuxKey = 'b';
+  tmuxKeyActivated = false;
 
-const handleKeyDown = (kv: KeyboardEvent) => {
-  if (kv.key == 'n' && kv.ctrlKey) {
-    kv.preventDefault()
-  }
-  if (kv.key == 'b' && kv.ctrlKey) {
-    kv.preventDefault()
-    console.log('tmux activated');
-    tmuxActive = true;
-  }
-
-  if (kv.key == 'n' && tmuxActive) {
-    kv.preventDefault()
-    tmuxActive = false;
-    sendTmuxEvent('next');
-  }
-  
-  if (kv.key == 'p' && tmuxActive) {
-    kv.preventDefault()
-    tmuxActive = false;
-    sendTmuxEvent('previous');
+  listen() {
+    document.addEventListener('keydown', (kv) => this.handleKeyDown(kv));
   }
 
-  if (kv.key == 'c' && tmuxActive) {
-    kv.preventDefault()
-    tmuxActive = false;
-    sendTmuxEvent('new');
-  }
-};
+  handleKeyDown(kv: KeyboardEvent): void {
+    if (kv.ctrlKey && this.keyToEventMap.has(kv.key)) { kv.preventDefault() };
+    if (kv.ctrlKey && kv.key == this.tmuxKey) { this.tmuxKeyActivated = true };
 
-function sendTmuxEvent(event: string) {
-  browser.runtime.sendMessage(event).then(msg => {
-  });
+    if (this.tmuxKeyActivated && kv.key != this.tmuxKey) {
+      this.tmuxKeyActivated = false;
+      browser.runtime.sendMessage(this.keyToEventMap.get(kv.key));
+    }
+  }
 }
-
-
-document.addEventListener('keydown', handleKeyDown);
+let kbHandler = new KeyboardEventHandler();
+kbHandler.listen();
