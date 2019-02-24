@@ -7,6 +7,7 @@ class KeyboardEventHandler {
       ['b', 'back']
     ]
   );
+  keysToDisable: string[] = ['n', 'p', 'b'];
   tmuxKey = 'b';
   tmuxKeyActivated = false;
 
@@ -15,7 +16,7 @@ class KeyboardEventHandler {
   }
 
   handleKeyDown(kv: KeyboardEvent): void {
-    if (kv.ctrlKey && this.keyToEventMap.has(kv.key)) { kv.preventDefault() };
+    if (kv.ctrlKey && this.keysToDisable.includes(kv.key)) { kv.preventDefault() };
     if (kv.ctrlKey && kv.key == this.tmuxKey) { this.tmuxKeyActivated = true };
 
     if (this.tmuxKeyActivated && kv.key != this.tmuxKey) {
